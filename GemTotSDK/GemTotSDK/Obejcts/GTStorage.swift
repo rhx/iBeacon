@@ -31,8 +31,8 @@ class GTStorage: NSObject {
     }
     
     // Documents directory
-    let _documentsDirectory = NSSearchPathForDirectoriesInDomains(.DocumentDirectory, .UserDomainMask, true)[0] as String
-    
+    let _documentsDirectory = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0] as String
+
     /**
     *
     *  @brief   Retrieves an object from a plist store
@@ -44,13 +44,11 @@ class GTStorage: NSObject {
     *
     */
     
-    func getValue(keyName: String, fromStore: String) -> AnyObject! {
-        
-        if let path = checkStore(fromStore)! as String? {
-        
+    func getValue(forKey keyName: String, fromStore: String) -> Any? {
+        if let path = check(store: fromStore)! as String? {
             let dict :NSDictionary? = NSDictionary(contentsOfFile: path)
         
-            let objectValue : AnyObject! = dict?.objectForKey(keyName)
+            let objectValue = dict?.object(forKey: keyName)
         
             return objectValue
         } else {
@@ -71,22 +69,13 @@ class GTStorage: NSObject {
     *
     */
     
-    func writeValue(value: AnyObject!, forKey: String, toStore: String) {
-        
-        if let path = checkStore(toStore)! as String? {
- 
-            let dict :NSMutableDictionary? = NSMutableDictionary(contentsOfFile: path)
-        
-            let old: AnyObject! = dict?.objectForKey(forKey)
-            
-            if (!old.isEqual(value)) {
-            
-                dict?.setValue(value, forKey: forKey)
-                dict?.writeToFile(path, atomically: true)
-            }
-        }
+    func write(value: Any!, forKey: String, toStore: String) {
+        guard let path = check(store: toStore)! as String?,
+              let dict = NSMutableDictionary(contentsOfFile: path) else { return }
+        dict.setValue(value, forKey: forKey)
+        _ = dict.write(toFile: path, atomically: true)
     }
-    
+
     /**
     *
     *  @brief   Checks that the plist store exists in the writable storage, if not then
@@ -100,18 +89,17 @@ class GTStorage: NSObject {
     */
     
 
-    func checkStore(storeName: String) -> String? {
+    func check(store storeName: String) -> String? {
         
-        let storePath = _documentsDirectory.stringByAppendingPathComponent("\(storeName).plist")
+        let storePath = _documentsDirectory.appending(pathComponent: "\(storeName).plist")
         
-        let fileManager = NSFileManager.defaultManager()
+        let fileManager = FileManager.default
         
-        if (!fileManager.fileExistsAtPath(storePath)) {
-            
-            if let bundle = NSBundle.mainBundle().pathForResource(storeName, ofType:"plist") {
+        if (!fileManager.fileExists(atPath: storePath)) {
+            if let bundle = Bundle.main.path(forResource: storeName, ofType:"plist") {
                 // TODO : Should handle the error but for now assuming
                 // that the error would not occur and hence try!
-                try! fileManager.copyItemAtPath(bundle, toPath: storePath)
+                try! fileManager.copyItem(atPath: bundle, toPath: storePath)
                 return storePath
             } else {
                 return nil
